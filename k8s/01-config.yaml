@@ -1,12 +1,7 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: flask-project
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: db-config
+  name: flask-db-config
   namespace: flask-project
 data:
   DB_HOST: postgres
@@ -16,8 +11,9 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: db-credentials
+  name: flask-db-secret
   namespace: flask-project
+type: Opaque
 stringData:
   DB_USER: labuser
   DB_PASSWORD: labpassword123

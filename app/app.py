@@ -27,10 +27,5 @@ def home():
     return f"<h1>Visits: {total}</h1><p>Served by pod: {socket.gethostname()}</p>"
 
 
-@app.route("/health")
-def health():
-    return "ok"
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
