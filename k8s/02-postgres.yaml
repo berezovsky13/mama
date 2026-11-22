@@ -1,56 +1,74 @@
+# ---------------------------------------------------------------
+# Service: gives PostgreSQL a stable DNS name inside the cluster.
+# Flask and the db-init Job connect to "postgres:5432"
+# (DB_HOST=postgres in the ConfigMap), not to a Pod IP that changes.
+# ---------------------------------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres              # this name becomes the DNS hostname
   namespace: flask-project
 spec:
   selector:
-    app: postgres
+    app: postgres             # send traffic to Pods with this label
   ports:
-    - port: 5432
+    - port: 5432              # PostgreSQL's default port
 ---
+# ---------------------------------------------------------------
+# StatefulSet: runs the PostgreSQL Pod.
+# Unlike a Deployment, it gives the Pod a fixed name (postgres-0)
+# and a PVC of its own. If the Pod is deleted, the new postgres-0
+# gets the SAME PVC back, so the visits data survives.
+# ---------------------------------------------------------------
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
   namespace: flask-project
 spec:
-  serviceName: postgres
-  replicas: 1
+  serviceName: postgres       # the Service that governs this StatefulSet
+  replicas: 1                 # one database Pod
   selector:
     matchLabels:
-      app: postgres
+      app: postgres           # must match the Pod template labels below
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres         # the Service selector finds the Pod by this label
     spec:
       containers:
         - name: postgres
           image: postgres:16
           env:
+            # The postgres image creates this database on first start
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef: { name: flask-db-config, key: DB_NAME }
+            # Username and password come from the Secret, not plain env values
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef: { name: flask-db-secret, key: DB_USER }
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef: { name: flask-db-secret, key: DB_PASSWORD }
+            # Keep the data in a subfolder of the volume
+            # (postgres refuses to start in a non-empty mount root, e.g. lost+found)
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:
-            - name: pgdata
-              mountPath: /var/lib/postgresql/data
+            - name: pgdata                          # the PVC from volumeClaimTemplates
+              mountPath: /var/lib/postgresql/data   # where postgres keeps its data
+          # Pod is "Ready" only when postgres accepts connections
           readinessProbe:
             exec:
               command: ["pg_isready"]
+  # Creates one PVC per Pod, named <template>-<pod> = pgdata-postgres-0.
+  # The PVC is NOT deleted when the Pod (or even the StatefulSet) is deleted.
   volumeClaimTemplates:
     - metadata:
         name: pgdata
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes: ["ReadWriteOnce"]   # mounted read-write by one node at a time
         resources:
           requests:
             storage: 1Gi
