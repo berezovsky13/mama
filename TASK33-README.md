@@ -44,6 +44,14 @@ $env:DB_HOST="localhost"; $env:DB_PORT="5432"; $env:DB_NAME="visitsdb"; $env:DB_
 .venv\Scripts\python app\app.py
 ```
 
+**On Linux (bash)** – from the `app` folder, set the settings and start the app in one line:
+
+```bash
+DB_HOST=localhost DB_PORT=5432 DB_NAME=visitsdb DB_USER=labuser DB_PASSWORD=labpassword123 python3 app.py
+```
+
+(The `$env:...` lines above are PowerShell only – they don't work in a Linux terminal.)
+
 Open http://localhost:5000 and refresh – the counter goes up.
 Stop the app with `Ctrl+C` (keep the `postgres` container running for step 2).
 
