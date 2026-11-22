@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flask-project
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+  namespace: flask-project
+data:
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: visitsdb
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: flask-project
+stringData:
+  DB_USER: labuser
+  DB_PASSWORD: labpassword123

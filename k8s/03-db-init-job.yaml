@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+  namespace: flask-project
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: db-init
+          image: postgres:16
+          envFrom:
+            - configMapRef: { name: db-config }
+          env:
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef: { name: db-credentials, key: DB_USER }
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: { name: db-credentials, key: DB_PASSWORD }
+          # IF NOT EXISTS = safe to run again, existing visits are kept
+          command:
+            - sh
+            - -c
+            - >
+              psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -c
+              "CREATE TABLE IF NOT EXISTS visits (id SERIAL PRIMARY KEY, visited_at TIMESTAMP DEFAULT now());"
+              && echo "visits table is ready"
